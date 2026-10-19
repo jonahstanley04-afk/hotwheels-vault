@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>HW Vault — Carded Collector</title>
+  <style>
+    :root {
+      --bg: #121214;
+      --card: #1c1c1f;
+      --card-border: rgba(255,255,255,0.08);
+      --accent: #ff5500;
+      --blue: #0a84ff;
+      --green: #30d158;
+      --gold: #ffd60a;
+      --red: #ff453a;
+      --text: #ffffff;
+      --muted: #8e8e93;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+      padding-bottom: 90px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 24px;
+      background: rgba(28, 28, 31, 0.85);
+      backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 20px;
+      letter-spacing: -0.5px;
+    }
+    .brand-badge {
+      background: linear-gradient(135deg, #ff5500, #ff2a00);
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-style: italic;
+    }
+    .icon-btn {
+      background: #2c2c30;
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      padding: 10px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(24, 24, 28, 0.95);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      padding: 12px 20px;
+      z-index: 100;
+    }
+    .nav-btn {
+      flex: 1;
+      max-width: 190px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .nav-btn.active {
+      background: rgba(255, 85, 0, 0.16);
+      color: var(--accent);
+    }
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 22px;
+      margin-bottom: 18px;
+    }
+    .panel-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0 0 6px 0;
+    }
+    .panel-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin: 0 0 18px 0;
+    }
+
+    .cam-Launch-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #ff5500, #e03e00);
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 8px 24px rgba(255, 85, 0, 0.28);
+    }
+    .camera-stage {
+      display: none;
+      position: relative;
+      background: #000;
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      border: 2px solid var(--accent);
+    }
+    .camera-stage.active { display: block; }
+    #camVideo {
+      width: 100%;
+      height: 320px;
+      object-fit: cover;
+      display: block;
+    }
+    .cam-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 14px;
+      pointer-events: none;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 25%, transparent 75%, rgba(0,0,0,0.75) 100%);
+    }
+    .cam-step-badge {
+      align-self: center;
+      background: rgba(0,0,0,0.75);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 99px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .cam-reticle {
+      width: 68%;
+      height: 190px;
+      border: 2px dashed rgba(255,255,255,0.65);
+      border-radius: 14px;
+      align-self: center;
+    }
+    .cam-reticle.locked {
+      border-color: var(--green);
+      border-style: solid;
+    }
+    .cam-bottom-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: auto;
+    }
+    .stability-track {
+      height: 7px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .stability-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--green);
+      transition: width 0.12s linear;
+    }
+    .cam-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .cam-status-text {
+      font-size: 12px;
+      color: #ddd;
+      font-weight: 600;
+    }
+
+    .scan-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .photo-slot {
+      border: 2px dashed rgba(255,255,255,0.18);
+      border-radius: 16px;
+      height: 155px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      background: #161618;
+      text-align: center;
+      padding: 12px;
+    }
+    .photo-slot img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .slot-label {
+      font-weight: 700;
+      font-size: 13px;
+      margin-top: 6px;
+      z-index: 2;
+    }
+    .slot-hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 3px;
+      z-index: 2;
+    }
+    .btn-row {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-primary {
+      flex: 1;
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-secondary {
+      background: #2c2c30;
+      color: white;
+      border: 1px solid var(--card-border);
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .error-box {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(255, 69, 58, 0.15);
+      border: 1px solid var(--red);
+      color: #ff8a80;
+      font-size: 12px;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    /* Image Picker Grid Modal / Box */
+    .image-picker-box {
+      background: #141416;
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 14px;
+      border-radius: 14px;
+      margin-bottom: 14px;
+    }
+    .picker-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .picker-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      max-height: 220px;
+      overflow-y: auto;
+      padding: 4px;
+    }
+    .picker-thumb {
+      height: 80px;
+      border-radius: 8px;
+      background: #222;
+      object-fit: cover;
+      cursor: pointer;
+      border: 2px solid transparent;
+      width: 100%;
+    }
+    .picker-thumb:hover { border-color: var(--blue); }
+    .picker-thumb.selected { border-color: var(--green); transform: scale(1.03); }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .field.full { grid-column: span 2; }
+    .field label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .field input, .field select {
+      background: #141416;
+      border: 1px solid rgba(255,255,255,0.12);
+      color: white;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-family: inherit;
+    }
+    .th-row {
+      grid-column: span 2;
+      display: flex;
+      gap: 12px;
+      margin-top: 4px;
+    }
+    .check-pill {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #141416;
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .dupe-banner {
+      padding: 12px 14px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      font-weight: 600;
+      display: none;
+    }
+    .dupe-banner.owned {
+      display: block;
+      background: rgba(255, 214, 10, 0.15);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+    }
+    .dupe-banner.new {
+      display: block;
+      background: rgba(48, 209, 88, 0.15);
+      border: 1px solid var(--green);
+      color: var(--green);
+    }
+
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .stat-box {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      padding: 14px;
+      border-radius: 16px;
+      text-align: center;
+    }
+    .stat-num {
+      font-size: 24px;
+      font-weight: 800;
+    }
+    .stat-lbl {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+    .car-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      padding: 14px;
+      border-radius: 16px;
+      margin-bottom: 12px;
+    }
+    .car-thumb {
+      width: 68px;
+      height: 68px;
+      border-radius: 10px;
+      background: #262629;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    .car-info { flex: 1; min-width: 0; }
+    .car-title {
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .car-meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .badge {
+      font-size: 10px;
+      padding: 3px 7px;
+      border-radius: 6px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-th { background: rgba(48,209,88,0.2); color: var(--green); }
+    .badge-sth { background: rgba(255,214,10,0.2); color: var(--gold); }
+    .badge-qty { background: #2c2c30; color: #fff; }
+    .price-col {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+    .price-val {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--green);
+    }
+    .ebay-link {
+      font-size: 11px;
+      color: var(--blue);
+      text-decoration: none;
+    }
+    .item-actions {
+      display: flex;
+      gap: 4px;
+      margin-top: 2px;
+    }
+    .mini-btn {
+      background: #2c2c30;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #fff;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .mini-btn.del {
+      background: rgba(255, 69, 58, 0.16);
+      color: var(--red);
+      border-color: rgba(255, 69, 58, 0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <span class="brand-badge">HW</span> VAULT
+    </div>
+    <button class="icon-btn" id="apiKeyBtn" onclick="promptApiKey()">⚙️ API Key</button>
+  </header>
+
+  <div class="container">
+
+    <!-- VIEW 1: SCAN HOT WHEELS -->
+    <div id="view-scan" class="view active">
+      <div class="panel">
+        <h2 class="panel-title" id="scanPanelTitle">Scan Carded Hot Wheels</h2>
+        <p class="panel-sub" id="scanPanelSub">Use live camera scanning or upload card photos.</p>
+
+        <button class="cam-Launch-btn" type="button" onclick="toggleLiveCamera()">
+          📹 Open Live Auto-Scanner (Front $\rightarrow$ Back)
+        </button>
+
+        <div class="camera-stage" id="cameraStage">
+          <video id="camVideo" autoplay playsinline muted></video>
+          <div class="cam-overlay">
+            <div class="cam-step-badge" id="camStepBadge">STEP 1 of 2: Hold FRONT of Card Steady</div>
+            <div class="cam-reticle" id="camReticle"></div>
+            <div class="cam-bottom-bar">
+              <div class="stability-track">
+                <div class="stability-fill" id="stabilityFill"></div>
+              </div>
+              <div class="cam-controls">
+                <span class="cam-status-text" id="camStatusText">Waiting for steady image...</span>
+                <div style="display:flex; gap:6px;">
+                  <button class="icon-btn" style="background:var(--accent); border:none;" type="button" onclick="manualSnapNow()">📸 Snap</button>
+                  <button class="icon-btn" type="button" onclick="stopLiveCamera()">✕ Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="scan-grid">
+          <label class="photo-slot" id="slot-front">
+            <span style="font-size:24px;">📸</span>
+            <div class="slot-label">1. Front of Card</div>
+            <div class="slot-hint">Tap to Upload</div>
+            <input type="file" accept="image/*" capture="environment" hidden onchange="handleImage(event, 'front')">
+          </label>
+
+          <label class="photo-slot" id="slot-back">
+            <span style="font-size:24px;">🔄</span>
+            <div class="slot-label">2. Back of Card</div>
+            <div class="slot-hint">Tap to Upload</div>
+            <input type="file" accept="image/*" capture="environment" hidden onchange="handleImage(event, 'back')">
+          </label>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-primary" type="button" id="analyzeBtn" onclick="analyzeCard()">✨ Identify Card</button>
+          <button class="btn-secondary" type="button" onclick="runDemoScan()">🎲 Demo Scan</button>
+        </div>
+        <div id="errorBox" class="error-box"></div>
+      </div>
+
+      <!-- SCAN RESULT / EDIT CARD -->
+      <div class="panel" id="resultPanel">
+        <div id="dupeBanner" class="dupe-banner"></div>
+        <h3 class="panel-title" id="formPanelTitle" style="margin-bottom:12px;">Card Details & Colorway Image Picker</h3>
+
+        <!-- COLORWAY IMAGE PICKER -->
+        <div class="image-picker-box">
+          <div class="picker-header">
+            <div>
+              <strong style="font-size:13px; color:#fff; display:block;">Select Matching Colorway Photo</strong>
+              <span id="pickerStatus" style="font-size:11px; color:var(--muted);">Matches your car's color/livery from online archives</span>
+            </div>
+            <button class="icon-btn" type="button" style="padding:6px 10px; font-size:12px;" onclick="searchColorwayImages()">🔍 Search Photos</button>
+          </div>
+          <div class="picker-grid" id="pickerGrid">
+            <div style="grid-column: span 3; text-align:center; padding: 20px; color:var(--muted); font-size:12px;">
+              Identify a car first to load matching colorway options here.
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <input type="hidden" id="editingId" value="">
+          <div class="field full">
+            <label>Car Casting Name</label>
+            <input type="text" id="f-name" placeholder="e.g. '98 Honda Prelude" oninput="checkDuplicateLive()">
+          </div>
+          <div class="field">
+            <label>Series / Set</label>
+            <input type="text" id="f-series" placeholder="e.g. HW J-Imports">
+          </div>
+          <div class="field">
+            <label>Collector #</label>
+            <input type="text" id="f-colNum" placeholder="e.g. 089/250 or Premium Pack">
+          </div>
+          <div class="field">
+            <label>Series #</label>
+            <input type="text" id="f-seriesNum" placeholder="e.g. 3/10">
+          </div>
+          <div class="field">
+            <label>Toy SKU</label>
+            <input type="text" id="f-sku" placeholder="e.g. HTB95" oninput="checkDuplicateLive()">
+          </div>
+          <div class="field">
+            <label>Release Year</label>
+            <input type="text" id="f-year" placeholder="e.g. 2024">
+          </div>
+          <div class="field">
+            <label>Colorway / Finish</label>
+            <input type="text" id="f-color" placeholder="e.g. Spectraflame Green" oninput="checkDuplicateLive()">
+          </div>
+          <div class="field">
+            <label>Est. Value ($ AUD)</label>
+            <input type="number" step="0.5" id="f-value" placeholder="8.00">
+          </div>
+          <div class="field full">
+            <label>Card Condition</label>
+            <select id="f-condition">
+              <option value="Mint Card">Mint Card (Long/Intl)</option>
+              <option value="Short Card Mint">Mint (Short Card)</option>
+              <option value="Soft Corners / Creased">Soft Corners / Creased</option>
+            </select>
+          </div>
+          <input type="hidden" id="f-imageUrl" value="">
+
+          <div class="th-row">
+            <label class="check-pill">
+              <input type="checkbox" id="f-th"> 🔥 Treasure Hunt (TH)
+            </label>
+            <label class="check-pill">
+              <input type="checkbox" id="f-sth"> 🏆 Super Treasure Hunt (STH)
+            </label>
+          </div>
+        </div>
+
+        <div class="btn-row" style="margin-top: 18px;">
+          <button class="btn-primary" type="button" id="saveBtnText" onclick="saveToCollection()">+ Save to My Collection</button>
+          <button class="btn-secondary" type="button" onclick="openEbayComps()">📈 Sold Comps</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 2: MY COLLECTION -->
+    <div id="view-collection" class="view">
+      <div class="stats-bar">
+        <div class="stat-box">
+          <div class="stat-num" id="stat-total">0</div>
+          <div class="stat-lbl">Total Cards</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num" id="stat-val">$0</div>
+          <div class="stat-lbl">Est. Value</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num" id="stat-th">0</div>
+          <div class="stat-lbl">TH / Super TH</div>
+        </div>
+      </div>
+
+      <div id="collectionList"></div>
+    </div>
+
+    <!-- VIEW 3: SEARCH & FILTER -->
+    <div id="view-search" class="view">
+      <div class="panel">
+        <h2 class="panel-title">Search Your Vault</h2>
+        <p class="panel-sub">Filter by casting name, series, colorway, doubles, or Treasure Hunts.</p>
+        <div class="form-grid">
+          <div class="field full">
+            <input type="text" id="searchInput" placeholder="Search casting, series, SKU, or color..." oninput="renderSearch()">
+          </div>
+          <div class="field full">
+            <select id="filterSelect" onchange="renderSearch()">
+              <option value="all">Show All Cars</option>
+              <option value="doubles">Only Doubles (Qty 2+)</option>
+              <option value="th">Only Treasure Hunts & Supers</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div id="searchResults"></div>
+    </div>
+
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" type="button" onclick="switchTab('scan', this)">📷 Scan</button>
+    <button class="nav-btn" type="button" onclick="switchTab('collection', this)">🏎️ Vault</button>
+    <button class="nav-btn" type="button" onclick="switchTab('search', this)">🔍 Search</button>
+  </nav>
+
+  <script>
+    const DEFAULT_PLACEHOLDER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='68' height='68'><rect width='100%' height='100%' fill='%23222'/><text x='50%' y='54%' font-size='26' text-anchor='middle' dominant-baseline='middle'>🏎️</text></svg>";
+    let frontBase64 = null;
+    let backBase64 = null;
+    let collection = JSON.parse(localStorage.getItem('hwVaultCollection') || '[]');
+
+    function updateApiKeyBtn() {
+      const hasKey = !!localStorage.getItem('hwGeminiKey');
+      const btn = document.getElementById('apiKeyBtn');
+      btn.textContent = hasKey ? '✅ Key Ready' : '⚙️ API Key';
+    }
+    updateApiKeyBtn();
+
+    function switchTab(tab, btn) {
+      stopLiveCamera();
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('view-' + tab).classList.add('active');
+      btn.classList.add('active');
+      if (tab === 'collection') renderCollection();
+      if (tab === 'search') renderSearch();
+    }
+
+    function promptApiKey() {
+      const current = localStorage.getItem('hwGeminiKey') || '';
+      const key = prompt('Paste your Gemini API Key (starts with AIza...):', current);
+      if (key !== null) {
+        localStorage.setItem('hwGeminiKey', key.replace(/\s+/g, ''));
+        updateApiKeyBtn();
+      }
+    }
+
+    let camStream = null;
+    let camInterval = null;
+    let prevFrameData = null;
+    let steadyProgress = 0;
+    let currentCamSide = 'front';
+    let camCooldown = false;
+
+    async function toggleLiveCamera() {
+      const stage = document.getElementById('cameraStage');
+      if (stage.classList.contains('active')) {
+        stopLiveCamera();
+        return;
+      }
+      try {
+        camStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
+        });
+        const video = document.getElementById('camVideo');
+        video.srcObject = camStream;
+        stage.classList.add('active');
+        currentCamSide = 'front';
+        steadyProgress = 0;
+        prevFrameData = null;
+        camCooldown = false;
+        updateCamUI();
+
+        const motionCanvas = document.createElement('canvas');
+        motionCanvas.width = 64;
+        motionCanvas.height = 64;
+        const mCtx = motionCanvas.getContext('2d', { willReadFrequently: true });
+
+        camInterval = setInterval(() => {
+          if (camCooldown || !video.videoWidth) return;
+          mCtx.drawImage(video, 0, 0, 64, 64);
+          const frame = mCtx.getImageData(0, 0, 64, 64).data;
+          if (prevFrameData) {
+            let diff = 0;
+            for (let i = 0; i < frame.length; i += 16) {
+              diff += Math.abs(frame[i] - prevFrameData[i]);
+            }
+            const avgDiff = diff / (frame.length / 16);
+            if (avgDiff < 11) {
+              steadyProgress = Math.min(100, steadyProgress + 14);
+              document.getElementById('camStatusText').textContent = `Holding steady... ${steadyProgress}%`;
+            } else {
+              steadyProgress = Math.max(0, steadyProgress - 20);
+              document.getElementById('camStatusText').textContent = `Hold card still...`;
+            }
+            document.getElementById('stabilityFill').style.width = steadyProgress + '%';
+            if (steadyProgress >= 100) captureCurrentVideoFrame();
+          }
+          prevFrameData = new Uint8ClampedArray(frame);
+        }, 120);
+      } catch (err) {
+        alert("Camera access unavailable (" + err.message + "). Use upload buttons below.");
+      }
+    }
+
+    function updateCamUI() {
+      const badge = document.getElementById('camStepBadge');
+      if (currentCamSide === 'front') {
+        badge.textContent = "STEP 1 of 2: Hold FRONT of Card Steady";
+        badge.style.background = "rgba(255, 85, 0, 0.9)";
+      } else {
+        badge.textContent = "STEP 2 of 2: Flip to BACK of Card & Hold Steady";
+        badge.style.background = "rgba(10, 132, 255, 0.9)";
+      }
+    }
+
+    function manualSnapNow() { captureCurrentVideoFrame(); }
+
+    function captureCurrentVideoFrame() {
+      const video = document.getElementById('camVideo');
+      if (!video.videoWidth) return;
+      camCooldown = true;
+      steadyProgress = 0;
+      document.getElementById('stabilityFill').style.width = '0%';
+      const reticle = document.getElementById('camReticle');
+      reticle.classList.add('locked');
+
+      const snapCanvas = document.createElement('canvas');
+      const maxDim = 1024;
+      let w = video.videoWidth, h = video.videoHeight;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+        else { w = Math.round((w * maxDim) / h); h = maxDim; }
+      }
+      snapCanvas.width = w;
+      snapCanvas.height = h;
+      snapCanvas.getContext('2d').drawImage(video, 0, 0, w, h);
+      const dataUrl = snapCanvas.toDataURL('image/jpeg', 0.85);
+
+      setSlotPreview(currentCamSide, dataUrl);
+
+      if (currentCamSide === 'front') {
+        document.getElementById('camStatusText').textContent = "✅ Front captured! Flip to BACK...";
+        currentCamSide = 'back';
+        updateCamUI();
+        setTimeout(() => {
+          reticle.classList.remove('locked');
+          prevFrameData = null;
+          camCooldown = false;
+        }, 1500);
+      } else {
+        document.getElementById('camStatusText').textContent = "✅ Both sides captured! Identifying...";
+        setTimeout(() => {
+          reticle.classList.remove('locked');
+          stopLiveCamera();
+          analyzeCard();
+        }, 600);
+      }
+    }
+
+    function stopLiveCamera() {
+      if (camInterval) { clearInterval(camInterval); camInterval = null; }
+      if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+      document.getElementById('cameraStage').classList.remove('active');
+    }
+
+    function setSlotPreview(side, compressedJpeg) {
+      if (side === 'front') frontBase64 = compressedJpeg;
+      if (side === 'back') backBase64 = compressedJpeg;
+      const slot = document.getElementById('slot-' + side);
+      let preview = slot.querySelector('img');
+      if (!preview) { preview = document.createElement('img'); slot.appendChild(preview); }
+      preview.src = compressedJpeg;
+    }
+
+    function handleImage(event, side) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imgObj = new Image();
+        imgObj.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxDim = 1024;
+          let w = imgObj.width, h = imgObj.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+            else { w = Math.round((w * maxDim) / h); h = maxDim; }
+          }
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(imgObj, 0, 0, w, h);
+          setSlotPreview(side, canvas.toDataURL('image/jpeg', 0.85));
+        };
+        imgObj.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // ========= COLORWAY-MATCHED IMAGE PICKER ENGINE =========
+    async function searchColorwayImages() {
+      const name = document.getElementById('f-name').value.trim();
+      const color = document.getElementById('f-color').value.trim();
+      if (!name) { alert("Enter a Car Casting Name first!"); return; }
+
+      const grid = document.getElementById('pickerGrid');
+      const status = document.getElementById('pickerStatus');
+      grid.innerHTML = `<div style="grid-column: span 3; text-align:center; padding: 20px; color:var(--muted); font-size:12px;">Searching Hot Wheels Wiki for "${name} (${color})" photos...</div>`;
+      status.textContent = "Searching matching photos...";
+
+      const searchQuery = `${name} ${color}`.trim();
+      let foundImages = [];
+
+      try {
+        const url = `https://hotwheels.fandom.com/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(searchQuery)}&gsrlimit=8&prop=pageimages&piprop=thumbnail&pithumbsize=400&format=json&origin=*`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.query && data.query.pages) {
+          for (const page of Object.values(data.query.pages)) {
+            if (page.thumbnail && page.thumbnail.source) {
+              foundImages.push(page.thumbnail.source);
+            }
+          }
+        }
+      } catch (_) {}
+
+      // Fallback search without specific color if few results found
+      if (foundImages.length < 3) {
+        try {
+          const url2 = `https://hotwheels.fandom.com/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(name)}&gsrlimit=8&prop=pageimages&piprop=thumbnail&pithumbsize=400&format=json&origin=*`;
+          const res2 = await fetch(url2);
+          const data2 = await res2.json();
+          if (data2.query && data2.query.pages) {
+            for (const page of Object.values(data2.query.pages)) {
+              if (page.thumbnail && page.thumbnail.source && !foundImages.includes(page.thumbnail.source)) {
+                foundImages.push(page.thumbnail.source);
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (foundImages.length > 0) {
+        status.textContent = `Found ${foundImages.length} options. Tap the one that matches your car's colorway:`;
+        grid.innerHTML = foundImages.map(imgUrl => `
+          <img class="picker-thumb" src="${imgUrl}" onclick="selectPickerImage('${encodeURIComponent(imgUrl)}', this)">
+        `).join('');
+        // Automatically select the first one
+        selectPickerImage(encodeURIComponent(foundImages[0]), grid.querySelector('.picker-thumb'));
+      } else {
+        grid.innerHTML = `<div style="grid-column: span 3; text-align:center; padding: 20px; color:var(--muted); font-size:12px;">No matching photos found online. You can edit the casting name or color and try searching again.</div>`;
+        status.textContent = "No images found.";
+      }
+    }
+
+    function selectPickerImage(encodedUrl, thumbElement) {
+      const url = decodeURIComponent(encodedUrl);
+      document.getElementById('f-imageUrl').value = url;
+      document.querySelectorAll('.picker-thumb').forEach(t => t.classList.remove('selected'));
+      if (thumbElement) thumbElement.classList.add('selected');
+    }
+
+    async function runDemoScan() {
+      document.getElementById('errorBox').style.display = 'none';
+      const demos = [
+        { name: "Nissan Skyline GT-R (BNR32)", series: "Car Culture", seriesNum: "1/5", colNum: "Premium Pack", sku: "FPY86", year: "2024", color: "Bayside Blue", value: 18.00, th: false, sth: false },
+        { name: "'83 Chevy Silverado", series: "HW Then and Now", seriesNum: "8/10", colNum: "242/250", sku: "HTF48", year: "2024", color: "Spectraflame Blue", value: 95.00, th: false, sth: true }
+      ];
+      const pick = demos[Math.floor(Math.random() * demos.length)];
+      await fillForm(pick);
+      document.getElementById('resultPanel').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    async function analyzeCard() {
+      const errorBox = document.getElementById('errorBox');
+      errorBox.style.display = 'none';
+      const apiKey = (localStorage.getItem('hwGeminiKey') || '').trim();
+      if (!frontBase64 && !backBase64) {
+        alert("Scan or upload card photos first!");
+        return;
+      }
+      if (!apiKey) { promptApiKey(); return; }
+
+      const btn = document.getElementById('analyzeBtn');
+      btn.textContent = "🔍 Identifying with Gemini 3.8 Flash...";
+      btn.disabled = true;
+
+      try {
+        const parts = [
+          {
+            text: `You are an expert Hot Wheels collector. Inspect these carded Hot Wheels photo(s).
+Extract details and return ONLY a valid JSON object matching this exact structure:
+{
+  "name": "Car Casting Name",
+  "series": "Series or Mini-Collection name",
+  "seriesNum": "Number in series (e.g. 3/10 or 2/5)",
+  "colNum": "Mainline collector number like '089/250', or 'Premium Pack' if it's a Car Culture/Boulevard set",
+  "sku": "Toy SKU code",
+  "year": "Release year",
+  "color": "Exact primary body color and tampo details",
+  "value": 8.0,
+  "th": false,
+  "sth": false
+}`
+          }
+        ];
+
+        if (frontBase64) parts.push({ inline_data: { mime_type: "image/jpeg", data: frontBase64.split(',')[1] } });
+        if (backBase64) parts.push({ inline_data: { mime_type: "image/jpeg", data: backBase64.split(',')[1] } });
+
+        let models = ["gemini-3.8-flash", "gemini-flash-latest"];
+        let lastError = "";
+        let parsedResult = null;
+
+        for (const model of models) {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseMimeType: "application/json", temperature: 0.1 } })
+          });
+          const data = await res.json();
+          if (!res.ok || data.error) {
+            lastError = data.error ? `${data.error.message} (Code ${data.error.code})` : `HTTP ${res.status}`;
+            continue;
+          }
+          const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            parsedResult = JSON.parse(jsonMatch[0]);
+            break;
+          }
+        }
+
+        if (!parsedResult) throw new Error(lastError || "Unknown API failure");
+
+        document.getElementById('editingId').value = "";
+        document.getElementById('scanPanelTitle').textContent = "Scan Carded Hot Wheels";
+        document.getElementById('formPanelTitle').textContent = "Card Details & Colorway Image Picker";
+        document.getElementById('saveBtnText').textContent = "+ Save to My Collection";
+
+        await fillForm(parsedResult);
+        document.getElementById('resultPanel').scrollIntoView({ behavior: 'smooth' });
+      } catch (err) {
+        errorBox.style.display = 'block';
+        errorBox.innerHTML = `<strong>Scan Diagnostic:</strong> ${err.message}`;
+      } finally {
+        btn.textContent = "✨ Identify Card";
+        btn.disabled = false;
+      }
+    }
+
+    async function fillForm(car) {
+      document.getElementById('f-name').value = car.name || '';
+      document.getElementById('f-series').value = car.series || '';
+      document.getElementById('f-seriesNum').value = car.seriesNum || '';
+      document.getElementById('f-colNum').value = car.colNum || 'Premium Pack';
+      document.getElementById('f-sku').value = car.sku || '';
+      document.getElementById('f-year').value = car.year || '';
+      document.getElementById('f-color').value = car.color || '';
+      document.getElementById('f-value').value = car.value || 5;
+      document.getElementById('f-th').checked = !!car.th;
+      document.getElementById('f-sth').checked = !!car.sth;
+      checkDuplicateLive();
+      await searchColorwayImages();
+    }
+
+    function checkDuplicateLive() {
+      const editingId = document.getElementById('editingId').value;
+      const name = document.getElementById('f-name').value.trim().toLowerCase();
+      const sku = document.getElementById('f-sku').value.trim().toLowerCase();
+      const banner = document.getElementById('dupeBanner');
+      if (!name) { banner.className = 'dupe-banner'; return; }
+
+      const exactMatch = collection.find(c => c.id != editingId && (
+        (sku && c.sku && c.sku.toLowerCase() === sku) ||
+        (c.name.toLowerCase() === name && (c.color || '').toLowerCase() === document.getElementById('f-color').value.trim().toLowerCase())
+      ));
+
+      if (exactMatch) {
+        banner.className = 'dupe-banner owned';
+        banner.textContent = `⚠️ DOUBLE ALERT: You already own ${exactMatch.qty}x of this exact card (${exactMatch.color})!`;
+      } else {
+        banner.className = 'dupe-banner new';
+        banner.textContent = `✅ Ready to save to your Vault.`;
+      }
+    }
+
+    function saveToCollection() {
+      const name = document.getElementById('f-name').value.trim();
+      if (!name) { alert("Enter a car name first!"); return; }
+
+      const editingId = document.getElementById('editingId').value;
+      const sku = document.getElementById('f-sku').value.trim();
+      const color = document.getElementById('f-color').value.trim();
+      const imageUrl = document.getElementById('f-imageUrl').value.trim();
+      const colNum = document.getElementById('f-colNum').value.trim() || "Premium Pack";
+
+      if (editingId) {
+        const idx = collection.findIndex(c => c.id == editingId);
+        if (idx !== -1) {
+          collection[idx].name = name;
+          collection[idx].series = document.getElementById('f-series').value.trim();
+          collection[idx].seriesNum = document.getElementById('f-seriesNum').value.trim();
+          collection[idx].colNum = colNum;
+          collection[idx].sku = sku;
+          collection[idx].year = document.getElementById('f-year').value.trim();
+          collection[idx].color = color;
+          collection[idx].value = parseFloat(document.getElementById('f-value').value) || 0;
+          collection[idx].condition = document.getElementById('f-condition').value;
+          collection[idx].th = document.getElementById('f-th').checked;
+          collection[idx].sth = document.getElementById('f-sth').checked;
+          if (imageUrl) collection[idx].imageUrl = imageUrl;
+        }
+        document.getElementById('editingId').value = "";
+        document.getElementById('scanPanelTitle').textContent = "Scan Carded Hot Wheels";
+        document.getElementById('formPanelTitle').textContent = "Card Details & Colorway Image Picker";
+        document.getElementById('saveBtnText').textContent = "+ Save to My Collection";
+        alert(`Updated "${name}" successfully!`);
+      } else {
+        const existing = collection.find(c =>
+          (sku && c.sku && c.sku.toLowerCase() === sku.toLowerCase()) ||
+          (c.name.toLowerCase() === name.toLowerCase() && (c.color || '').toLowerCase() === color.toLowerCase())
+        );
+
+        if (existing) {
+          existing.qty += 1;
+          existing.value = parseFloat(document.getElementById('f-value').value) || existing.value;
+          if (imageUrl) existing.imageUrl = imageUrl;
+        } else {
+          collection.unshift({
+            id: Date.now(),
+            name,
+            series: document.getElementById('f-series').value.trim(),
+            seriesNum: document.getElementById('f-seriesNum').value.trim(),
+            colNum,
+            sku,
+            year: document.getElementById('f-year').value.trim(),
+            color,
+            value: parseFloat(document.getElementById('f-value').value) || 0,
+            condition: document.getElementById('f-condition').value,
+            th: document.getElementById('f-th').checked,
+            sth: document.getElementById('f-sth').checked,
+            imageUrl,
+            qty: 1
+          });
+        }
+        alert(`Saved "${name}" to your Vault!`);
+      }
+
+      localStorage.setItem('hwVaultCollection', JSON.stringify(collection));
+      checkDuplicateLive();
+      switchTab('collection', document.querySelectorAll('.nav-btn')[1]);
+    }
+
+    function editCar(id) {
+      const car = collection.find(c => c.id === id);
+      if (!car) return;
+
+      document.getElementById('editingId').value = car.id;
+      document.getElementById('scanPanelTitle').textContent = "Edit Car Record";
+      document.getElementById('formPanelTitle').textContent = `Editing: ${car.name}`;
+      document.getElementById('saveBtnText').textContent = "💾 Save Changes";
+
+      document.getElementById('f-name').value = car.name || '';
+      document.getElementById('f-series').value = car.series || '';
+      document.getElementById('f-seriesNum').value = car.seriesNum || '';
+      document.getElementById('f-colNum').value = car.colNum || 'Premium Pack';
+      document.getElementById('f-sku').value = car.sku || '';
+      document.getElementById('f-year').value = car.year || '';
+      document.getElementById('f-color').value = car.color || '';
+      document.getElementById('f-value').value = car.value || 0;
+      document.getElementById('f-condition').value = car.condition || 'Mint Card';
+      document.getElementById('f-imageUrl').value = car.imageUrl || '';
+      document.getElementById('f-th').checked = !!car.th;
+      document.getElementById('f-sth').checked = !!car.sth;
+
+      switchTab('scan', document.querySelectorAll('.nav-btn')[0]);
+      searchColorwayImages();
+      document.getElementById('resultPanel').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function changeCarQty(id, delta) {
+      const idx = collection.findIndex(c => c.id === id);
+      if (idx === -1) return;
+      if (collection[idx].qty + delta <= 0) { deleteCar(id); return; }
+      collection[idx].qty += delta;
+      localStorage.setItem('hwVaultCollection', JSON.stringify(collection));
+      renderCollection();
+      renderSearch();
+    }
+
+    function deleteCar(id) {
+      const car = collection.find(c => c.id === id);
+      if (!car) return;
+      if (!confirm(`Remove "${car.name}" from your collection?`)) return;
+      collection = collection.filter(c => c.id !== id);
+      localStorage.setItem('hwVaultCollection', JSON.stringify(collection));
+      renderCollection();
+      renderSearch();
+    }
+
+    function openEbayComps() {
+      const name = document.getElementById('f-name').value.trim();
+      const sku = document.getElementById('f-sku').value.trim();
+      if (!name) { alert("Enter a car name first."); return; }
+      const q = encodeURIComponent(`Hot Wheels ${name} ${sku}`);
+      window.open(`https://www.ebay.com.au/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1`, '_blank');
+    }
+
+    function renderCarCard(car) {
+      const q = encodeURIComponent(`Hot Wheels ${car.name} ${car.sku || ''}`);
+      const imgSrc = car.imageUrl || DEFAULT_PLACEHOLDER;
+      const colDisplay = car.colNum === 'Premium Pack' ? '★ Premium Pack' : `#${car.colNum || '-'}`;
+      return `
+        <div class="car-item">
+          <img class="car-thumb" src="${imgSrc}" onerror="this.src=DEFAULT_PLACEHOLDER">
+          <div class="car-info">
+            <div class="car-title">
+              ${car.name}
+              <span class="badge badge-qty">x${car.qty}</span>
+              ${car.th ? `<span class="badge badge-th">🔥 TH</span>` : ''}
+              ${car.sth ? `<span class="badge badge-sth">🏆 SUPER TH</span>` : ''}
+            </div>
+            <div class="car-meta">
+              ${car.series || 'Mainline'} (${car.seriesNum || '-'}) • ${colDisplay} • ${car.color || 'Standard'}
+            </div>
+          </div>
+          <div class="price-col">
+            <div class="price-val">$${((car.value || 0) * car.qty).toFixed(2)}</div>
+            <a class="ebay-link" href="https://www.ebay.com.au/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1" target="_blank">Sold Comps ↗</a>
+            <div class="item-actions">
+              <button class="mini-btn" type="button" onclick="editCar(${car.id})">✏️ Edit</button>
+              <button class="mini-btn" type="button" onclick="changeCarQty(${car.id}, -1)">−</button>
+              <button class="mini-btn" type="button" onclick="changeCarQty(${car.id}, 1)">+</button>
+              <button class="mini-btn del" type="button" onclick="deleteCar(${car.id})">🗑️</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCollection() {
+      const totalCards = collection.reduce((sum, c) => sum + c.qty, 0);
+      const totalVal = collection.reduce((sum, c) => sum + ((c.value || 0) * c.qty), 0);
+      const totalTH = collection.filter(c => c.th || c.sth).length;
+
+      document.getElementById('stat-total').textContent = totalCards;
+      document.getElementById('stat-val').textContent = '$' + totalVal.toFixed(0);
+      document.getElementById('stat-th').textContent = totalTH;
+
+      const list = document.getElementById('collectionList');
+      list.innerHTML = collection.length
+        ? collection.map(renderCarCard).join('')
+        : `<div class="panel"><p class="panel-sub" style="margin:0;">Your vault is empty. Head to "Scan" to add a car!</p></div>`;
+    }
+
+    function renderSearch() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const filter = document.getElementById('filterSelect').value;
+      const filtered = collection.filter(c => {
+        const matchesText = !q || [c.name, c.series, c.sku, c.color].join(' ').toLowerCase().includes(q);
+        const matchesFilter =
+          filter === 'all' ||
+          (filter === 'doubles' && c.qty > 1) ||
+          (filter === 'th' && (c.th || c.sth));
+        return matchesText && matchesFilter;
+      });
+      document.getElementById('searchResults').innerHTML = filtered.map(renderCarCard).join('');
+    }
+  </script>
+</body>
+</html>
